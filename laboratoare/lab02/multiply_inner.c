@@ -8,11 +8,30 @@ int **a;
 int **b;
 int **c;
 
+pthread_mutex_t mutex;
+
+double min(double a, double b) {
+  return a < b ? a : b;
+}
+
 // TODO: paralelizati operatia din comentariul din functie
 // in interiorul functiei respective
 void *thread_function(void *arg)
 {
 	int thread_id = *(int *)arg;
+
+	int start = thread_id * (double) N / P;
+  	int end = min((thread_id + 1) * (double) N / P, N);
+
+	for (int i = 0; i < N; i++) {
+	   for (int j = 0; j < N; j++) {
+			for (int k = start; k < end; k++) {
+				pthread_mutex_lock(&mutex);
+				c[i][j] += a[i][k] * b[k][j];
+				pthread_mutex_unlock(&mutex);
+			}
+		}
+  	}
 
 	/*
 	for (i = 0; i < N; i++) {
@@ -98,6 +117,9 @@ int main(int argc, char *argv[])
 	pthread_t tid[P];
 	int thread_id[P];
 
+	i = pthread_mutex_init(&mutex, NULL);
+	// verif
+
 	for (i = 0; i < P; i++) {
 		thread_id[i] = i;
 		pthread_create(&tid[i], NULL, thread_function, &thread_id[i]);
@@ -106,6 +128,8 @@ int main(int argc, char *argv[])
 	for (i = 0; i < P; i++) {
 		pthread_join(tid[i], NULL);
 	}
+
+	pthread_mutex_destroy(&mutex);
 
 	print(c);
 
