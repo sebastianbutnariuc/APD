@@ -3,6 +3,8 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "pthread_barrier_mac.h"
+
 #define INSIDE -1 // daca numarul cautat este in interiorul intervalului
 #define OUTSIDE -2 // daca numarul cautat este in afara intervalului
 
@@ -17,6 +19,8 @@ struct my_arg {
 	int *v;
 	int *found;
 };
+
+pthread_barrier_t barrier;
 
 /*
 void binary_search() {
@@ -41,12 +45,35 @@ void binary_search() {
 
 void *f(void *arg)
 {
-	struct my_arg* data = (struct my_arg*) arg;
+	struct my_arg *d = (struct my_arg *) arg;
+	int id = d->id, P = d->P;
+	int *found = d->found;
 
-	while (*data->keep_running) {
-		int size = *data->right - *data->left;
+	while (*d->keep_running && *d->left < *d->right) {
+		int left = *d->left;
+		int size = *d->right - left;
+		int p = left + (long long)(id + 1) * size / (P + 1);
 
-		// TODO: implementati parallel binary search
+		if (d->v[p] < d->number)      found[id] = -1;
+		else if (d->v[p] > d->number) found[id] = 1;
+		else                          found[id] = 0;
+
+		pthread_barrier_wait(&barrier);   // all probes done
+
+		if (found[id] == 0) {
+			if (id == 0 || found[id - 1] != 0) {
+				printf("Number found at position %d\n", p);
+				*d->keep_running = 0;
+			}
+		} else if (found[id] < 0) {
+			if (id == P - 1 || found[id + 1] > 0)
+				*d->left = p + 1;
+		} else {
+			if (id == 0 || found[id - 1] < 0)
+				*d->right = p;
+		}
+
+		pthread_barrier_wait(&barrier);   // updates done before the next check
 	}
 
 	return NULL;
@@ -65,12 +92,14 @@ void display_vector(int *v, int size) {
 
 int main(int argc, char *argv[])
 {
-	int r, N, P, number, keep_running, left, right;
+	int r, N, P = 0, number, keep_running, left, right;
 	int *v;
 	int *found;
 	void *status;
 	pthread_t *threads;
 	struct my_arg *arguments;
+
+	pthread_barrier_init(&barrier, NULL, P);
 
 	if (argc < 4) {
 		printf("Usage:\n\t./ex N P number\n");
@@ -123,6 +152,14 @@ int main(int argc, char *argv[])
 			exit(-1);
 		}
 	}
+
+	pthread_barrier_destroy(&barrier);
+
+	if (keep_running) {    // nobody found it
+		printf("Number not found\n");
+	}
+
+	free(found);  
 
 	free(v);
 	free(threads);
