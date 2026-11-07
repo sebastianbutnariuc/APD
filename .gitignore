@@ -1,1 +1,13 @@
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Compiled output
+*.class
+
+# OS junk
 .DS_Store
+Thumbs.db
