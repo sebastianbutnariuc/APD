@@ -15,6 +15,10 @@ public class Main {
 
     // TODO: add semaphores
 
+    public static Semaphore clientSemaphore = new Semaphore(TOTAL_CLIENTS);
+    public static Semaphore chairSemaphore = new Semaphore(TOTAL_CHAIRS);
+    public static Semaphore barberReadySemaphore = new Semaphore(SERVED_CLIENT);
+
     public static int clients = TOTAL_CLIENTS;
     public static int chairs = TOTAL_CHAIRS;
 

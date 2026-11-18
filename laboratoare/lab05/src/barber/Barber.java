@@ -1,5 +1,7 @@
 package barber;
 
+import java.util.concurrent.Semaphore;
+
 public class Barber extends Thread {
     @Override
     public void run() {
@@ -7,10 +9,25 @@ public class Barber extends Thread {
 
         do {
             // TODO
+            Semaphore clientSemaphore = Main.clientSemaphore;
+            Semaphore chairSemaphore = Main.chairSemaphore;
+            Semaphore barberReadySemaphore = Main.barberReadySemaphore;
+
+            try {
+                clientSemaphore.acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             Main.chairs++;
 
             // TODO
+
+            try {
+                chairSemaphore.acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             try {
                 Thread.sleep(100);
@@ -20,6 +37,10 @@ public class Barber extends Thread {
 
             System.out.println("Barber served client");
             ++servedClients;
+
+
+            barberReadySemaphore.release();
+            chairSemaphore.release();
 
         } while (checkIfThereAnyClients());
     }
