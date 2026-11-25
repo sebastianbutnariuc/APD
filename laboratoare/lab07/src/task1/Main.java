@@ -1,6 +1,9 @@
 package task1;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
     static int[][] graph = { { 0, 1 }, { 0, 4 }, { 0, 5 }, { 1, 0 }, { 1, 2 }, { 1, 6 }, { 2, 1 }, { 2, 3 }, { 2, 7 },
@@ -31,6 +34,53 @@ public class Main {
         ArrayList<Integer> partialPath = new ArrayList<>();
         // se vor calcula toate caile de la nodul 0 la nodul 3 in cadrul grafului
         partialPath.add(0);
-        getPath(partialPath, 3);
+//        getPath(partialPath, 3);
+
+        AtomicInteger inQueue = new AtomicInteger(0);
+        ExecutorService tpe = Executors.newFixedThreadPool(4);
+
+        inQueue.incrementAndGet();
+        tpe.submit(new MyRunnable(partialPath, 3, tpe, inQueue));
+    }
+}
+
+class MyRunnable implements Runnable {
+    private ArrayList<Integer> partialPath;
+    private int destination;
+    private ExecutorService tpe;
+    private AtomicInteger inQueue;
+
+    public MyRunnable(ArrayList<Integer> partialPath, int destination, ExecutorService tpe, AtomicInteger inQueue) {
+        this.partialPath = partialPath;
+        this.tpe = tpe;
+        this.inQueue = inQueue;
+        this.destination = destination;
+    }
+
+    @Override
+    public void run() {
+        if (partialPath.get(partialPath.size() - 1) == destination) {
+            System.out.println(partialPath);
+        } else {
+            // se verifica nodurile pentru a evita ciclarea in graf
+            int lastNodeInPath = partialPath.get(partialPath.size() - 1);
+            for (int i = 0; i < Main.graph.length; i++) {
+                if (Main.graph[i][0] == lastNodeInPath) {
+                    if (partialPath.contains(Main.graph[i][1]))
+                        continue;
+                    ArrayList<Integer> newPartialPath = new ArrayList<>(partialPath);
+                    newPartialPath.add(Main.graph[i][1]);
+
+                    inQueue.incrementAndGet();
+                    tpe.submit(new MyRunnable(newPartialPath, destination, tpe, inQueue));
+                }
+            }
+        }
+            int left = inQueue.decrementAndGet();
+            System.out.println("left: " + left);
+            if (left == 0) {
+                tpe.shutdown();
+            }
+
     }
 }
